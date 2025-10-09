@@ -1,0 +1,20 @@
+{
+  "name": "telegram-prompt-enhancer",
+  "version": "1.0.0",
+  "description": "Telegram bot for enhancing AI prompts",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": ["telegram", "bot", "ai", "prompts"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "openai": "^4.20.1",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
