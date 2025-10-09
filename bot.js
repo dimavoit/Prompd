@@ -1,4 +1,4 @@
-// bot.js - Основной файл Telegram бота
+// bot.js - Основной файл Telegram бота v2.0
 
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
@@ -26,19 +26,36 @@ console.log('🤖 Бот запущен успешно!');
 
 /**
  * Создает клавиатуру с выбором движков
+ * Фикс для iOS Dark Mode - используем emoji вместо текста для видимости
  */
 function createEngineKeyboard() {
   const buttons = [];
   
+  // Группируем движки по категориям для лучшей читаемости
+  const imageEngines = [];
+  const videoEngines = [];
+  const other = [];
+  
   Object.keys(engines).forEach(key => {
     const engine = engines[key];
-    buttons.push([{
+    const buttonData = {
       text: `${engine.icon} ${engine.name}`,
       callback_data: `engine_${key}`
-    }]);
+    };
+    
+    if (engine.category === 'image') {
+      imageEngines.push([buttonData]);
+    } else if (engine.category === 'video') {
+      videoEngines.push([buttonData]);
+    } else {
+      other.push([buttonData]);
+    }
   });
   
-  return { inline_keyboard: buttons };
+  // Объединяем все кнопки
+  return { 
+    inline_keyboard: [...imageEngines, ...videoEngines, ...other]
+  };
 }
 
 /**
@@ -50,25 +67,19 @@ bot.onText(/\/start/, (msg) => {
   
   const welcomeMessage = `👋 Привет, ${userName}!
 
-Я помогу улучшить твои промпты для любого AI-движка.
+Я *Prompd* - улучшаю промпты для AI-движков.
 
-🎯 *Как это работает:*
-1. Выбери AI-движок командой /select
-2. Напиши свой промпт на русском или английском
-3. Получи профессионально улучшенный промпт
+🎯 *Как работает:*
+1. Выбери движок → /select
+2. Напиши промпт (можно на русском)
+3. Получи улучшенную версию
 
-✨ *Что я умею:*
-• Переводить с русского на английский
-• Структурировать промпт правильно
-• Добавлять технические параметры
-• Учитывать особенности каждого движка
+✨ *Поддерживаю:*
+🖼️ Изображения: Midjourney, DALL-E, Flux, Firefly, Soul, Ideogram, Nanobanana
+🎦 Видео: Runway, Pika, Kling, Luma, Sora 2, Stable Video
+🎭 3D: Meshy
 
-📝 *Доступные команды:*
-/select - Выбрать AI-движок
-/help - Справка
-/info - Информация о текущем движке
-
-Начни с команды /select чтобы выбрать движок! 🚀`;
+Начни с /select! 🚀`;
 
   bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
 });
@@ -79,36 +90,26 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/\/help/, (msg) => {
   const chatId = msg.chat.id;
   
-  const helpMessage = `📖 *Справка по использованию*
+  const helpMessage = `📖 *Справка Prompd*
 
-*Основные команды:*
-/start - Начать работу
-/select - Выбрать AI-движок
-/info - Информация о выбранном движке
-/help - Эта справка
+*Команды:*
+/start - Начать
+/select - Выбрать движок
+/info - Инфо о движке
+/help - Справка
 
-*Как использовать:*
-1️⃣ Выбери движок через /select
-2️⃣ Напиши свой промпт (можно на русском!)
-3️⃣ Получи улучшенную версию
+*Примеры:*
 
-*Примеры промптов:*
+_Midjourney:_
+"кот на луне"
 
-Для Midjourney:
-_"девушка в красном платье на улице"_
+_Runway (видео):_
+"девушка танцует в парке"
 
-Для Runway (видео):
-_"кот прыгает через препятствия"_
+_Flux (фото):_
+"портрет мужчины 40 лет"
 
-Для ChatGPT:
-_"напиши статью о здоровом питании"_
-
-*Советы:*
-• Пиши конкретно, что хочешь увидеть
-• Указывай настроение и атмосферу
-• Не бойся деталей - я их структурирую!
-
-Есть вопросы? Просто спроси! 💬`;
+Просто пиши что хочешь - я структурирую! 💬`;
 
   bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
 });
@@ -119,11 +120,10 @@ _"напиши статью о здоровом питании"_
 bot.onText(/\/select/, (msg) => {
   const chatId = msg.chat.id;
   
-  const message = `🎯 *Выберите AI-движок:*\n\n` +
-    `💬 - Текстовые модели\n` +
-    `🖼️ - Генерация изображений\n` +
-    `🎦 - Генерация видео\n` +
-    `🎭 - 3D модели`;
+  const message = `🎯 *Выбери AI-движок:*\n\n` +
+    `🖼️ Изображения\n` +
+    `🎦 Видео\n` +
+    `🎭 3D модели`;
   
   bot.sendMessage(chatId, message, {
     parse_mode: 'Markdown',
@@ -140,7 +140,7 @@ bot.onText(/\/info/, (msg) => {
   
   if (!selectedEngine) {
     bot.sendMessage(chatId, 
-      '⚠️ Сначала выберите движок командой /select',
+      '⚠️ Сначала выбери движок → /select',
       { parse_mode: 'Markdown' }
     );
     return;
@@ -152,19 +152,15 @@ bot.onText(/\/info/, (msg) => {
   infoMessage += `📝 ${engine.description}\n\n`;
   
   if (engine.maxLength) {
-    infoMessage += `⏱️ Максимальная длина: ${engine.maxLength}\n\n`;
+    infoMessage += `⏱️ Макс. длина: ${engine.maxLength}\n\n`;
   }
   
   if (engine.parameters) {
-    infoMessage += `⚙️ *Параметры:*\n${engine.parameters.join(', ')}\n\n`;
-  }
-  
-  if (engine.template) {
-    infoMessage += `📋 *Структура промпта:*\n\`${engine.template}\`\n\n`;
+    infoMessage += `⚙️ *Параметры:* ${engine.parameters.join(', ')}\n\n`;
   }
   
   infoMessage += `💡 *Особенности:*\n`;
-  engine.enhancementRules.forEach((rule, i) => {
+  engine.enhancementRules.slice(0, 3).forEach((rule, i) => {
     infoMessage += `${i + 1}. ${rule}\n`;
   });
   
@@ -183,26 +179,35 @@ bot.on('callback_query', async (query) => {
     const engine = engines[engineKey];
     
     if (!engine) {
-      await bot.answerCallbackQuery(query.id, { text: '❌ Ошибка выбора движка' });
+      await bot.answerCallbackQuery(query.id, { text: '❌ Ошибка' });
       return;
     }
     
-    // Сохраняем выбор пользователя
+    // Сохраняем выбор
     userSelections.set(chatId, engineKey);
     
     await bot.answerCallbackQuery(query.id, { 
-      text: `✅ Выбран ${engine.name}` 
+      text: `✅ ${engine.name}` 
     });
     
-    const confirmMessage = `✅ Выбран движок: ${engine.icon} *${engine.name}*\n\n` +
+    const confirmMessage = `✅ *${engine.icon} ${engine.name}*\n\n` +
       `${engine.description}\n\n` +
-      `Теперь просто отправь мне свой промпт, и я улучшу его! 🚀\n\n` +
-      `_Используй /info чтобы узнать больше об этом движке_`;
+      `Отправь промпт - я улучшу! 🚀`;
     
     await bot.editMessageText(confirmMessage, {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'Markdown'
+    });
+  } else if (data === 'change_engine') {
+    // Показываем меню выбора снова
+    await bot.answerCallbackQuery(query.id);
+    
+    const message = `🎯 *Выбери другой движок:*`;
+    
+    await bot.sendMessage(chatId, message, {
+      parse_mode: 'Markdown',
+      reply_markup: createEngineKeyboard()
     });
   }
 });
@@ -219,28 +224,27 @@ bot.on('message', async (msg) => {
     return;
   }
   
-  // Проверяем, выбран ли движок
+  // Проверяем выбран ли движок
   const selectedEngine = userSelections.get(chatId);
   
   if (!selectedEngine) {
     bot.sendMessage(chatId, 
-      '⚠️ Сначала выберите AI-движок командой /select',
+      '⚠️ Выбери движок → /select',
       { parse_mode: 'Markdown' }
     );
     return;
   }
   
-  // Отправляем сообщение о начале обработки
+  // Сообщение о начале обработки
   const processingMsg = await bot.sendMessage(chatId, 
-    '⏳ Улучшаю ваш промпт...',
-    { parse_mode: 'Markdown' }
+    '⏳ Улучшаю промпт...'
   );
   
   try {
     // Улучшаем промпт
     const result = await enhancePrompt(text, selectedEngine);
     
-    // Форматируем и отправляем результат
+    // Форматируем результат
     const formattedResult = formatResult(result);
     
     await bot.editMessageText(formattedResult, {
@@ -249,7 +253,7 @@ bot.on('message', async (msg) => {
       parse_mode: 'Markdown'
     });
     
-    // Предлагаем выбрать другой движок
+    // Кнопка для смены движка
     const keyboard = {
       inline_keyboard: [[
         { text: '🔄 Другой движок', callback_data: 'change_engine' }
@@ -257,7 +261,7 @@ bot.on('message', async (msg) => {
     };
     
     await bot.sendMessage(chatId, 
-      '_Хотите попробовать другой движок? Используйте /select_',
+      '_Изменить движок → /select_',
       { 
         parse_mode: 'Markdown',
         reply_markup: keyboard
@@ -268,15 +272,10 @@ bot.on('message', async (msg) => {
     console.error('Error processing message:', error);
     
     await bot.editMessageText(
-      '❌ Произошла ошибка при обработке промпта.\n\n' +
-      'Попробуйте:\n' +
-      '• Упростить промпт\n' +
-      '• Попробовать позже\n' +
-      '• Выбрать другой движок через /select',
+      '❌ Ошибка обработки.\n\nПопробуй:\n• Упростить промпт\n• Другой движок /select',
       {
         chat_id: chatId,
-        message_id: processingMsg.message_id,
-        parse_mode: 'Markdown'
+        message_id: processingMsg.message_id
       }
     );
   }
@@ -293,4 +292,4 @@ process.on('unhandledRejection', (error) => {
   console.error('Unhandled rejection:', error);
 });
 
-console.log('✅ Бот готов к работе!');
+console.log('✅ Prompd v2.0 готов к работе!');

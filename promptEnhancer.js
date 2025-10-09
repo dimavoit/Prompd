@@ -1,4 +1,4 @@
-// promptEnhancer.js - Логика улучшения промптов через OpenAI
+// promptEnhancer.js - Логика улучшения промптов через OpenAI v2.0
 
 const OpenAI = require('openai');
 const { engines } = require('./config');
@@ -48,27 +48,25 @@ ${engine.enhancementRules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}
 
 {
   "enhanced_prompt": "улучшенный промпт на английском языке",
-  "translation_ru": "перевод улучшенного промпта на русский для понимания",
-  "explanation": "краткое объяснение на русском, что было улучшено и почему",
-  "tips": ["совет 1", "совет 2", "совет 3"]
+  "translation_ru": "перевод улучшенного промпта на русский для понимания"
 }
 
 ВАЖНО:
 - enhanced_prompt ВСЕГДА на английском, даже если пользователь писал на русском
 - translation_ru - это перевод enhanced_prompt на русский
-- explanation и tips всегда на русском
 - Сохраняй основную идею пользователя, но улучшай структуру и детали
+- Будь кратким, не добавляй лишнего текста
 - Не добавляй ничего лишнего, только JSON`;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Используем более быструю модель для экономии
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: 800,
       response_format: { type: "json_object" }
     });
 
@@ -79,8 +77,6 @@ ${engine.enhancementRules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}
       original: userPrompt,
       enhanced: result.enhanced_prompt,
       translation: result.translation_ru,
-      explanation: result.explanation,
-      tips: result.tips || [],
       engine: engine.name,
       engineIcon: engine.icon
     };
@@ -97,7 +93,7 @@ ${engine.enhancementRules.map((rule, i) => `${i + 1}. ${rule}`).join('\n')}
 }
 
 /**
- * Форматирует результат для отправки пользователю
+ * Форматирует результат для отправки пользователю (СОКРАЩЕННАЯ ВЕРСИЯ)
  */
 function formatResult(result) {
   if (!result.success) {
@@ -106,20 +102,9 @@ function formatResult(result) {
 
   let message = `${result.engineIcon} *${result.engine}*\n\n`;
   
-  message += `📝 *Ваш промпт:*\n_${result.original}_\n\n`;
+  message += `✨ *Enhanced:*\n\`\`\`\n${result.enhanced}\n\`\`\`\n\n`;
   
-  message += `✨ *Улучшенный промпт (английский):*\n\`\`\`\n${result.enhanced}\n\`\`\`\n\n`;
-  
-  message += `🔄 *Перевод для понимания:*\n${result.translation}\n\n`;
-  
-  message += `💡 *Что улучшено:*\n${result.explanation}\n\n`;
-  
-  if (result.tips && result.tips.length > 0) {
-    message += `📌 *Советы по использованию:*\n`;
-    result.tips.forEach((tip, i) => {
-      message += `${i + 1}. ${tip}\n`;
-    });
-  }
+  message += `🔄 ${result.translation}`;
   
   return message;
 }
