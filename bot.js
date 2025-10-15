@@ -1,7 +1,8 @@
-// bot.js - Основной файл Telegram бота v2.0
+// bot.js - Основной файл Telegram бота v2.0 + Cron Support
 
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const express = require('express');
 const { engines } = require('./config');
 const { enhancePrompt, formatResult } = require('./promptEnhancer');
 
@@ -16,6 +17,27 @@ if (!process.env.OPENAI_API_KEY) {
   process.exit(1);
 }
 
+// Создаем Express сервер для health check (для Cron Job)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('🤖 Prompd bot is running!');
+});
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    bot: 'running',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Web server listening on port ${PORT}`);
+});
+
 // Создаем бота
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 
@@ -26,12 +48,10 @@ console.log('🤖 Бот запущен успешно!');
 
 /**
  * Создает клавиатуру с выбором движков
- * Фикс для iOS Dark Mode - используем emoji вместо текста для видимости
  */
 function createEngineKeyboard() {
   const buttons = [];
   
-  // Группируем движки по категориям для лучшей читаемости
   const imageEngines = [];
   const videoEngines = [];
   const other = [];
@@ -52,7 +72,6 @@ function createEngineKeyboard() {
     }
   });
   
-  // Объединяем все кнопки
   return { 
     inline_keyboard: [...imageEngines, ...videoEngines, ...other]
   };
@@ -200,7 +219,6 @@ bot.on('callback_query', async (query) => {
       parse_mode: 'Markdown'
     });
   } else if (data === 'change_engine') {
-    // Показываем меню выбора снова
     await bot.answerCallbackQuery(query.id);
     
     const message = `🎯 *Выбери другой движок:*`;
