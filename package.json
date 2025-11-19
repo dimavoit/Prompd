@@ -1,12 +1,12 @@
 {
   "name": "telegram-prompt-enhancer",
   "version": "2.1.0",
-  "description": "Prompd - Telegram bot for enhancing AI prompts with monetization",
+  "description": "Prompd - Telegram bot for enhancing AI prompts",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
-  "keywords": ["telegram", "bot", "ai", "prompts", "prompd", "stars"],
+  "keywords": ["telegram", "bot", "ai", "prompts", "prompd"],
   "author": "dimavoit",
   "license": "MIT",
   "dependencies": {
