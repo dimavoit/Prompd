@@ -109,8 +109,68 @@ function formatResult(result) {
   return message;
 }
 
+/**
+ * Доработка существующего промпта
+ */
+async function refinePrompt(currentPrompt, userRequest, engineKey) {
+  const engine = engines[engineKey];
+  
+  if (!engine) {
+    throw new Error(`Неизвестный движок: ${engineKey}`);
+  }
+
+  const systemPrompt = `Ты эксперт по промптам для ${engine.name}.
+
+ТЕКУЩИЙ ПРОМПТ:
+${currentPrompt}
+
+ЗАПРОС ПОЛЬЗОВАТЕЛЯ:
+${userRequest}
+
+Доработай текущий промпт согласно просьбе пользователя.
+Сохрани качество и структуру.
+
+Верни JSON:
+{
+  "enhanced_prompt": "доработанный промпт на английском",
+  "translation_ru": "перевод на русский"
+}`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userRequest }
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    
+    return {
+      success: true,
+      enhanced: result.enhanced_prompt,
+      translation: result.translation_ru,
+      engine: engine.name,
+      engineIcon: engine.icon
+    };
+
+  } catch (error) {
+    console.error('Error refining prompt:', error);
+    return {
+      success: false,
+      error: 'Ошибка при доработке промпта'
+    };
+  }
+}
+
+// Обнови module.exports
 module.exports = {
   enhancePrompt,
+  refinePrompt, // добавь это
   formatResult,
   detectLanguage
 };
