@@ -238,25 +238,18 @@ const engines = {
   }
 };
 
-// Настройки монетизации
+// Настройки подписок
 const subscriptions = {
   FREE: {
     name: 'Free',
     dailyLimit: 3,
-    refineLimitPerPrompt: 0,
-    canUseAllEngines: true,
-    maxSavedPrompts: 0,
     price: 0
   },
   PRO: {
     name: 'Pro',
-    dailyLimit: null, // безлимит
-    refineLimitPerPrompt: null, // безлимит
-    canUseAllEngines: true,
-    maxSavedPrompts: 50,
-    price: 99900, // в копейках (990 руб)
+    dailyLimit: null,
     priceRub: 990,
-    priceDescription: '990 ₽/мес'
+    priceStars: 9900 // в копейках для Stars
   }
 };
 
